@@ -64,14 +64,6 @@ void compareHashes(BYTE** file, BYTE* guess, int num_hashes, int guess_length){
     int test;
     BYTE* hashed_guess = hashGuess(guess, guess_length);
     for(int i = 0; i < num_hashes; i++){
-        for(int j = 0; j < SHA256_BLOCK_SIZE; j++){
-            printf("%02x", file[i][j]);
-        }
-        printf("\n=====");
-        for(int j = 0; j < SHA256_BLOCK_SIZE; j++){
-            printf("%02x", hashed_guess[j]);
-        }
-        printf("\n=====");
         test = memcmp(file[i], hashed_guess, SHA256_BLOCK_SIZE);
         if(test == 0){
             printf("%s %d\n", guess, i);
@@ -90,105 +82,41 @@ BYTE* hashGuess(BYTE* guess, int guess_length){
     return buffer;
 }
 
-/**
- * Generates all patterns of the alphabet up to maxlen in length.  This
- * function uses a buffer that holds alphaLen * alphaLen patterns at a time.
- * One pattern of length 5 would be "aaaaa\n".  The reason that alphaLen^2
- * patterns are used is because we prepopulate the buffer with the last 2
- * letters already set to all possible combinations.  So for example,
- * the buffer initially looks like "aaaaa\naaaab\naaaac\n ... aaa99\n".  Then
- * on every iteration, we write() the buffer out, and then increment the
- * third to last letter.  So on the first iteration, the buffer is modified
- * to look like "aabaa\naabab\naabac\n ... aab99\n".  This continues until
- * all combinations of letters are exhausted.
- */
-void generate(int maxlen, BYTE** file)
-{
-    int   alphaLen = 95;
-    int num_guesses_made = 0;
+/* Brute force generating all possible 4 keyword password */
+void generateFourCharPass(int maxlen, BYTE** file){
     int   len      = maxlen;
-    BYTE *buffer   = malloc((maxlen + 1) * alphaLen * alphaLen);
-    int  *letters  = malloc(maxlen * sizeof(int));
+    BYTE *buffer   = malloc((maxlen + 1));
 
-    if (buffer == NULL || letters == NULL) {
-        fprintf(stderr, "Not enough memory.\n");
+    if (buffer == NULL) {
+        fprintf(stderr, "Cannot allocate memory for buffer");
         exit(1);
     }
 
     // This for loop generates all 1 letter patterns, then 2 letters, etc,
     // up to the given maxlen.
-    // The stride is one larger than len because each line has a '\n'.
-    int i;
+    // The stride is one larger than len because each line has a '\0'.
     int stride = len+1;
-    int bufLen = stride * alphaLen * alphaLen;
+    int bufLen = stride;
 
-    // Initialize buffer to contain all first letters.
-    memset(buffer, alphabet[0], bufLen);
-
-    // Now write all the last 2 letters and newlines, which
-    // will after this not change during the main algorithm.
-    {
-        // Let0 is the 2nd to last letter.  Let1 is the last letter.
-        int let0 = 0;
-        int let1 = 0;
-        for (i=len-2;i<bufLen;i+=stride) {
-            buffer[i]   = alphabet[let0];
-            buffer[i+1] = alphabet[let1++];
-            buffer[i+2] = '\n';
-            if (let1 == alphaLen) {
-                let1 = 0;
-                let0++;
-                if (let0 == alphaLen)
-                    let0 = 0;
+    // Initialize buffer
+    memset(buffer, '\0', bufLen);
+    int numOfGuesses = 0;
+    for(int i = 0; i < MAX_KEYWORDS; i++){
+        for(int j = 0; j < MAX_KEYWORDS; j++){
+            for(int k = 0; k < MAX_KEYWORDS; k++){
+                for(int l = 0; l < MAX_KEYWORDS; l++){
+                    buffer[0] = alphabet[i];
+                    buffer[1] = alphabet[j];
+                    buffer[2] = alphabet[k];
+                    buffer[3] = alphabet[l];
+                    compareHashes(file, buffer, NUM_PWD4SHA256, MAX_LENGTH);
+                    memset(buffer, '\0', bufLen);
+                    numOfGuesses++;
+                }
             }
         }
     }
-
-    // Set all the letters to 0.
-    for (i=0;i<len;i++)
-        letters[i] = 0;
-
-    // Now on each iteration, increment the the third to last letter.
-    i = len-3;
-    do {
-        char c;
-        int  j;
-
-        // Increment this letter.
-        letters[i]++;
-
-        // Handle wraparound.
-        if (letters[i] >= alphaLen)
-            letters[i] = 0;
-
-        // Set this letter in the proper places in the buffer.
-        c = alphabet[letters[i]];
-        for (j=i;j<bufLen;j+=stride)
-            buffer[j] = c;
-
-        if (letters[i] != 0) {
-            // No wraparound, so we finally finished incrementing.
-            // Write out this set.  Reset i back to third to last letter.
-            //write(STDOUT_FILENO, buffer, bufLen);
-            
-            compareHashes(file, buffer, NUM_PWD4SHA256, MAX_LENGTH);
-            num_guesses_made++;
-
-            printf("\n NUM OF GUESS %d \n", num_guesses_made);
-            i = len - 3;
-            continue;
-        }
-
-        // The letter wrapped around ("carried").  Set up to increment
-        // the next letter on the left.
-        i--;
-        // If we carried past last letter, we're done with this
-        // whole length.
-        if (i < 0)
-            break;
-    } while(1);
-
-    // Clean up.
-    free(letters);
+    printf("Num of guesses %d\n", numOfGuesses);
+    // Clean up
     free(buffer);
 }

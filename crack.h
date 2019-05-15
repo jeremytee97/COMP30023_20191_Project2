@@ -11,7 +11,7 @@
 /*Function declaration*/
 void compareHashes(BYTE** file, BYTE* guess, int num_hashes, int guess_length);
 
-void generate(int maxlen, BYTE** file);
+void generateFourCharPass(int maxlen, BYTE** file);
 
 BYTE** readfile(char* filename, int num_hashes);
 
