@@ -113,8 +113,7 @@ void calculateAndWrite(int b,  unsigned char* buffer){
     int gbmodp = compute(G, b, P);
 
     //print for checking
-    printf("B = %d\n", b);
-    printf("g^b mod p = %d\n", gbmodp);
+    //printf("B = %d\n", b);
 
     char str[10];
     sprintf(str, "%d", gbmodp);
@@ -130,6 +129,9 @@ void calculateAndWrite(int b,  unsigned char* buffer){
         exit(0);
     }
 
+    printf("Send username and gbmodp =\n%s", buffer);
+
+
     bzero(buffer, 256);
 
     //read gamodp from server
@@ -140,21 +142,24 @@ void calculateAndWrite(int b,  unsigned char* buffer){
         perror("ERROR reading from socket");
         exit(0);
     }
-    printf("g^a mod p = %s\n", buffer);
+    printf("g^a mod p from server = %s\n", buffer);
 
     //convert it to int
-    int gamodp = atoi(buffer);
+    int gamodp = (int)strtol(buffer, NULL, 10);
 
     //compute secret key
     int secret = compute(gamodp, b, P);
-
     bzero(buffer, 256);
-    char secretkey[10];
-    sprintf(secretkey, "%d", gbmodp);
-    strcpy(buffer, str);
+    
+    char secretkey[20] = {0};
+    sprintf(secretkey, "%d", secret);
+    strcpy(buffer, secretkey);
     strcat(buffer, "\n");
 
+    printf("Secret buffer send = %s\n", buffer);
+
     //write secret key back to server
+    //printf("buffer length = %ld", strlen(buffer));
     n = write(sockfd, buffer, strlen(buffer));
 
     if (n < 0)
