@@ -151,9 +151,7 @@ void calculateAndWrite(int b,  unsigned char* buffer){
     int secret = compute(gamodp, b, P);
     bzero(buffer, 256);
     
-    char secretkey[20] = {0};
-    sprintf(secretkey, "%d", secret);
-    strcpy(buffer, secretkey);
+    sprintf(buffer, "%d", secret);
     strcat(buffer, "\n");
 
     printf("Secret buffer send = %s\n", buffer);
