@@ -31,30 +31,32 @@ const BYTE smartGuess[52] = "abcdefghijklmnopqrstuvwxyz"
 
 const BYTE alphabets[MAX_ALPHABETS] = "abcdefghijklmnopqrstuvwxyz";
 
-const BYTE similar_character_mapping[MAX_ALPHABETS][MAX_SIMILAR_CHARACTER+1] = {
-    "A4@", "B?6","C(","D?","E3","F","G","H","I!|1","J","K","L|1","M","N&^",
-    "O0*","P?","Q","R2","S$52","T7%","U","V","W","X*","Y","Z"}
+const char similar_character_mapping[MAX_ALPHABETS][MAX_SIMILAR_CHARACTER+1] = {
+    "A4@", "B?68","C(","D?","E3","F","G","H","I!|1","J","K","L|1","M","N&^",
+    "O0*","P?","Q9","R2","S$52","T7%","U","V","W","X*","Y","Z"}
     ;
 
-/*const BYTE similarCharacters = {{'a', 'A', '4', '@'}, {'b', 'B', '?', '6'}, {'c', 'C', '('}, {'d', 'D', '?'}, {'e', 'E', '3'},
-{'f', 'F'}, {'g', 'G'}, {'h', 'H'}, {'i', 'I', '!', '|', '1'}, {'j', 'J'}, {'k', 'K'}, {'l','L', '|', '1'}, {'m', 'M'}, {'n', 'N', '&', '^'},
-{'o', 'O', '0', '*'}, {'p', 'P', '?'}, {'q', 'Q'}, {'r', 'R', '2'}, {'s', 'S', '$', '5', '2'}, {'t', 'T', '7', '%'}, {'u', 'U'}, {'v', 'V'}, {'w', 'W'},
-{'x', 'X', '*'}, {'y', 'Y'}, {'z', 'Z'}};
- */
+char symbolsPool[12] = "?|~!@#$%^&*+";
+
+char numberPool[10] =  "0123456789";
+
 //" ,./;'[]\\-=`<>?:\"{}|~!@#$%^&*()_+"
 int main(int argc, char *argv[])
 {
     if (argc == 2){
         int numOfGuesses = atoi(argv[1]);
-        printf("numOfGuesses %d\n", numOfGuesses);
+        smartGuesses(numOfGuesses);
     }
-    BYTE** file = readHashFile(PWD4_FILENAME, NUM_PWD4SHA256);
-    generateFourCharPass(MAX_LENGTH, file, NUM_PWD4SHA256);
-    free(file);
-    printf("END OF KEYWORD 4\n");
-    BYTE** file2 = readHashFile(PWD6_FILENAME, NUM_PWD6SHA256);
-    generateSixCharPass(6, file2, NUM_PWD6SHA256);
-    free(file2);
+
+    else if (argc == 1){
+        BYTE** file = readHashFile(PWD4_FILENAME, NUM_PWD4SHA256);
+        generateFourCharPass(MAX_LENGTH, file, NUM_PWD4SHA256);
+        free(file);
+        printf("END OF KEYWORD 4\n");
+        BYTE** file2 = readHashFile(PWD6_FILENAME, NUM_PWD6SHA256);
+        generateSixCharPass(6, file2, NUM_PWD6SHA256);
+        free(file2);
+    }
     return 0;
 }
 
@@ -85,7 +87,7 @@ int compareHashes(BYTE** file, BYTE* guess, int num_hashes, int guess_length){
     for(int i = 0; i < num_hashes; i++){
         test = memcmp(file[i], hashed_guess, SHA256_BLOCK_SIZE);
         if(test == 0){
-            printf("%s %d\n", guess, i);
+            printf("%s %d\n", guess, i+1+10);
             return 1;
         }
     }
@@ -112,6 +114,7 @@ void generateFourCharPass(int maxlen, BYTE** file, int numberOfHash){
         fprintf(stderr, "Cannot allocate memory for buffer");
         exit(1);
     }
+
 
     // This for loop generates all 1 letter patterns, then 2 letters, etc,
     // up to the given maxlen.
@@ -145,27 +148,135 @@ void generateFourCharPass(int maxlen, BYTE** file, int numberOfHash){
 }
 
 
-void smartGuesses(int numOfGuesses){
+void smartGuesses(int numGuessRequired){
+    //try dictionary attack using common_password.txt
+    //if length 6 just print, else if < 6, combine numbers and punctuation
+    int numGuessMade = 0;
+    numGuessMade += dictionaryAttack(numGuessRequired);
+    
+    printf("%d\n", numGuessMade);
 
-    //try dictionary attack first
-    static const char filename[] = COMMON_PASS_FILENAME;
-    FILE *file = fopen ( filename, "r" );
-    if ( file != NULL ){
-        char line [ 128 ]; 
-        while ( fgets ( line, sizeof line, file ) != NULL ){
-            
+    //update guess required
+    numGuessRequired -= numGuessMade;
+    while(numGuessRequired != 0){
+        //do smtg else
+
+        numGuessRequired --;
+    }
+}
+
+int dictionaryAttack(int numGuessRequired){
+    //include '\0'
+    int bufferLen = SMART_GUESS_WORD_LEN + 1;
+
+    int numGuessMade = 0;
+
+    //read common_password file
+    FILE *file = fopen (COMMON_PASS_FILENAME,"r");
+    if (file != NULL){
+        char line [128]; 
+        bzero(line, 128);
+        char *buffer   = malloc(bufferLen);
+
+        if (buffer == NULL) {
+            fprintf(stderr, "Cannot allocate memory for buffer");
+            exit(1);
         }
-        fclose ( file );
+        
+         //try dictionary attack first
+        while (fgets(line, sizeof(line), file) != NULL ){
+            int wordLen = strlen(line);
+
+            //ignore words with length > 6 + 1 (take account '\n' character)
+            if(wordLen > SMART_GUESS_WORD_LEN + 1){
+                continue;
+            }
+        
+            //copy string without '\n'
+            strncpy(buffer, line, wordLen - 1);
+
+            //clear line and buffer for next word (safety purpose)
+            bzero(line, 128);
+            
+            //if it is a 6 character guess, output and move on
+            if(strlen(buffer) == 6){
+                printf("%s\n", buffer);
+                numGuessMade++;
+            // string length < 6
+            } else {
+                int length_suffix =  SMART_GUESS_WORD_LEN - strlen(buffer);
+                char* suffix_buff = malloc(length_suffix + 1);
+                memset(suffix_buff, 0, length_suffix + 1);
+                numGuessMade = bruteImpl(suffix_buff, 0, length_suffix, buffer, numGuessRequired, numGuessMade);
+                free(suffix_buff);
+            }
+            //reset buffer for next word
+            memset(buffer, '\0', bufferLen);
+            if (numGuessMade == numGuessRequired){
+                return numGuessMade;
+            }
+        }
+        fclose(file);
+        free(buffer);
+        return numGuessMade;
     } else{
-        perror ( filename ); /* why didn't the file open? */
+        perror("Common_password.txt not found");
+        return 0;
     }
+}
 
-    BYTE *buffer   = malloc((maxlen + 1));
 
-    if (buffer == NULL) {
-        fprintf(stderr, "Cannot allocate memory for buffer");
-        exit(1);
+int bruteImpl(char* suffix, int index, int maxDepth, char* prefix, int numGuessRequired, int numGuessMade){
+    //if suffix length = 2 (1 number, 1 symbol)
+    //if suffix length = 1 (1 number)
+    char* charPool;
+    int poolSize;
+    if(index == 0){
+       charPool = numberPool;
+       poolSize = 10;
+    } else {
+       charPool = symbolsPool;
+       poolSize = 12;
     }
+    for (int i = 0; i < poolSize; i++){
+        suffix[index] = charPool[i];
+        if (index == maxDepth - 1){
+            printf("%s%s\n", prefix, suffix);
+            if(maxDepth == 2){
+                numGuessMade++;
+                if(numGuessMade == numGuessRequired){
+                    return numGuessMade;
+                }
+                char* reversedSuffix = reverseWord(suffix);
+                printf("%s%s\n", prefix, reversedSuffix);
+                free(reversedSuffix);
+            }
+            numGuessMade++;
+            if(numGuessMade == numGuessRequired){
+                return numGuessMade;
+            }
+        } else {
+            if(bruteImpl(suffix, index + 1, maxDepth, prefix, numGuessRequired, numGuessMade) == numGuessRequired){
+                return numGuessMade;
+            }
+        }
+    }
+    return numGuessMade;
+}
+
+char* reverseWord(char* suffix){
+    char* suffix_buffer = malloc(strlen(suffix)+1);
+    memset(suffix_buffer, '\0', strlen(suffix)+1);
+    strcpy(suffix_buffer, suffix);
+    char tmp;
+    int last_index_suffix = strlen(suffix) - 1;
+    for(int i = 0; i < last_index_suffix;i++){
+       tmp = suffix_buffer[i];
+       suffix_buffer[i] = suffix_buffer[last_index_suffix];
+       suffix_buffer[last_index_suffix] = tmp;
+       last_index_suffix--;
+   }
+   return suffix_buffer;
 }
 
 
@@ -219,3 +330,9 @@ void generateSixCharPass(int maxlen, BYTE** file, int numberOfHash){
     // Clean up
     free(buffer);
 }
+/* void bruteSequential(int maxLen){
+    char* buf = malloc(maxLen + 1);
+    memset(buf, 0, maxLen + 1);
+    bruteImpl(buf, 0, maxLen);
+    free(buf);
+} */

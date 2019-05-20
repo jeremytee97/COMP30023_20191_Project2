@@ -8,6 +8,7 @@
 #define MAX_SIMILAR_CHARACTER 4
 
 #define SMART_GUESS 90
+#define SMART_GUESS_WORD_LEN 6
 #define NUM_PWD4SHA256 10
 #define NUM_PWD6SHA256 20
 
@@ -19,9 +20,17 @@
 /*Function declaration*/
 int compareHashes(BYTE** file, BYTE* guess, int num_hashes, int guess_length);
 
+void smartGuesses(int numOfGuesses);
+
+int dictionaryAttack(int numGuessRequired);
+
+char* reverseWord(char* suffix);
+
 void generateFourCharPass(int maxlen, BYTE** file, int numberOfHash);
 
 void generateSixCharPass(int maxlen, BYTE** file, int numberOfHash);
+
+int bruteImpl(char* str, int index, int maxDepth, char* prefix, int numGuessRequired, int numGuessMade);
 
 BYTE** readHashFile(char* filename, int num_hashes);
 
