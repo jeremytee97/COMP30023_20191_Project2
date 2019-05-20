@@ -20,13 +20,13 @@ static const int MAX_LENGTH = 4;
 // The best way to test this program is to output to /dev/null, otherwise
 // the file I/O will dominate the test time.
 
-const BYTE alphabet[MAX_KEYWORDS] = "abcdefghijklmnopqrstuvwxyz"
+const BYTE allchar[MAX_KEYWORDS] = "abcdefghijklmnopqrstuvwxyz"
                        "0123456789"
                        " ,./;'[]\\-=`<>?:\"{}|~!@#$%^&*()_+"
                        "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
 
-const BYTE smartGuess[52] = "abcdefghijklmnopqrstuvwxyz"
+const BYTE alphabets[52] = "abcdefghijklmnopqrstuvwxyz"
                             "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
 const BYTE alphabets[MAX_ALPHABETS] = "abcdefghijklmnopqrstuvwxyz";
@@ -40,12 +40,11 @@ char symbolsPool[12] = "?|~!@#$%^&*+";
 
 char numberPool[10] =  "0123456789";
 
-//" ,./;'[]\\-=`<>?:\"{}|~!@#$%^&*()_+"
 int main(int argc, char *argv[])
 {
     if (argc == 2){
         int numOfGuesses = atoi(argv[1]);
-        smartGuesses(numOfGuesses);
+        generateGuess(numOfGuesses);
     }
 
     else if (argc == 1){
@@ -129,10 +128,10 @@ void generateFourCharPass(int maxlen, BYTE** file, int numberOfHash){
         for(int j = 0; j < MAX_KEYWORDS; j++){
             for(int k = 0; k < MAX_KEYWORDS; k++){
                 for(int l = 0; l < MAX_KEYWORDS; l++){
-                    buffer[0] = alphabet[i];
-                    buffer[1] = alphabet[j];
-                    buffer[2] = alphabet[k];
-                    buffer[3] = alphabet[l];
+                    buffer[0] = allchar[i];
+                    buffer[1] = allchar[j];
+                    buffer[2] = allchar[k];
+                    buffer[3] = allchar[l];
                     numOfCorrectGuesses += compareHashes(file, buffer, NUM_PWD4SHA256, MAX_LENGTH);
                     memset(buffer, '\0', bufLen);
                     if(numOfCorrectGuesses == numberOfHash){
@@ -148,7 +147,12 @@ void generateFourCharPass(int maxlen, BYTE** file, int numberOfHash){
 }
 
 
-void smartGuesses(int numGuessRequired){
+// statistics based on common_password.txt
+// 70 different character
+// 82 % are alphabets
+// 11 % are alphanumeric
+// 5 % are numbers
+void generateGuess(int numGuessRequired){
     //try dictionary attack using common_password.txt
     //if length 6 just print, else if < 6, combine numbers and punctuation
     int numGuessMade = 0;
@@ -308,12 +312,12 @@ void generateSixCharPass(int maxlen, BYTE** file, int numberOfHash){
                 for(int l = 0; l < 52; l++){
                     for(int m = 0; m < 52; m++){
                         for(int n = 0; n < 52; n++){
-                            buffer[0] = smartGuess[i];
-                            buffer[1] = smartGuess[j];
-                            buffer[2] = smartGuess[k];
-                            buffer[3] = smartGuess[l];
-                            buffer[4] = smartGuess[m];
-                            buffer[5] = smartGuess[n];
+                            buffer[0] = alphabets[i];
+                            buffer[1] = alphabets[j];
+                            buffer[2] = alphabets[k];
+                            buffer[3] = alphabets[l];
+                            buffer[4] = alphabets[m];
+                            buffer[5] = alphabets[n];
                             numOfCorrectGuesses += compareHashes(file, buffer, NUM_PWD6SHA256, 6);
                             //printf("%s\n", buffer);
                             memset(buffer, '\0', bufLen);
@@ -330,9 +334,3 @@ void generateSixCharPass(int maxlen, BYTE** file, int numberOfHash){
     // Clean up
     free(buffer);
 }
-/* void bruteSequential(int maxLen){
-    char* buf = malloc(maxLen + 1);
-    memset(buf, 0, maxLen + 1);
-    bruteImpl(buf, 0, maxLen);
-    free(buf);
-} */

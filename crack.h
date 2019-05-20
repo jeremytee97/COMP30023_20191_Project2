@@ -20,7 +20,7 @@
 /*Function declaration*/
 int compareHashes(BYTE** file, BYTE* guess, int num_hashes, int guess_length);
 
-void smartGuesses(int numOfGuesses);
+void generateGuess(int numOfGuesses);
 
 int dictionaryAttack(int numGuessRequired);
 
