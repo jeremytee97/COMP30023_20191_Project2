@@ -3,11 +3,12 @@
 #define CRACK_H
 
 #define MAX_KEYWORDS 95
-#define MAX_ALPHABETS 26
+#define MAX_ALPHABETS 52
+#define MAX_LOWERCASE_ALPHABETS 26
 
-#define MAX_SIMILAR_CHARACTER 4
+#define PWD4_GUESS_LENGTH 4
+#define PWD6_GUESS_LENGTH 6
 
-#define SMART_GUESS 90
 #define SMART_GUESS_WORD_LEN 6
 #define NUM_PWD4SHA256 10
 #define NUM_PWD6SHA256 20
@@ -21,6 +22,8 @@
 int compareHashes(BYTE** file, BYTE* guess, int num_hashes, int guess_length);
 
 void generateGuess(int numOfGuesses);
+
+void generate_similar_words(char* word, int numGuessRemaining);
 
 int dictionaryAttack(int numGuessRequired);
 

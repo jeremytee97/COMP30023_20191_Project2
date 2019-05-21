@@ -14,34 +14,37 @@
 #include "sha256.h"
 #include "crack.h"
 
-static const int MAX_LENGTH = 4;
-// Print all combinations of the given alphabet up to length n.
-//
-// The best way to test this program is to output to /dev/null, otherwise
-// the file I/O will dominate the test time.
-
 const BYTE allchar[MAX_KEYWORDS] = "abcdefghijklmnopqrstuvwxyz"
                        "0123456789"
                        " ,./;'[]\\-=`<>?:\"{}|~!@#$%^&*()_+"
                        "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
 
-const BYTE alphabets[52] = "abcdefghijklmnopqrstuvwxyz"
+const BYTE alphabets[MAX_ALPHABETS] = "abcdefghijklmnopqrstuvwxyz"
                             "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
-const BYTE alphabets[MAX_ALPHABETS] = "abcdefghijklmnopqrstuvwxyz";
-
-const char similar_character_mapping[MAX_ALPHABETS][MAX_SIMILAR_CHARACTER+1] = {
-    "A4@", "B?68","C(","D?","E3","F","G","H","I!|1","J","K","L|1","M","N&^",
+const BYTE lower_case_alpha[MAX_LOWERCASE_ALPHABETS] = "abcdefghijklmnopqrstuvwxyz";
+/* 
+const char similar_character_mapping[MAX_LOWERCASE_ALPHABETS][MAX_SIMILAR_CHARACTER+1] = {
+    "A4@", "B?68","C(","D?","E*3","F","G","H","I!|1","J","K","L|1","M","N&^",
     "O0*","P?","Q9","R2","S$52","T7%","U","V","W","X*","Y","Z"}
-    ;
+    ; */
 
-char symbolsPool[12] = "?|~!@#$%^&*+";
+char similar_p[4] = "p\0";
 
-char numberPool[10] =  "0123456789";
+char similar_a[4] = "a4\0";
 
-int main(int argc, char *argv[])
-{
+char similar_s[5] = "52\0";
+
+char similar_w[3] = "w\0";
+
+char similar_o[4] = "0\0";
+
+char symbolsPool[13] = "?|~!@#$%^&*+\0";
+
+char numberPool[11] =  "0123456789\0";
+
+int main(int argc, char *argv[]){
     if (argc == 2){
         int numOfGuesses = atoi(argv[1]);
         generateGuess(numOfGuesses);
@@ -49,11 +52,11 @@ int main(int argc, char *argv[])
 
     else if (argc == 1){
         BYTE** file = readHashFile(PWD4_FILENAME, NUM_PWD4SHA256);
-        generateFourCharPass(MAX_LENGTH, file, NUM_PWD4SHA256);
+        generateFourCharPass(PWD4_GUESS_LENGTH, file, NUM_PWD4SHA256);
         free(file);
         printf("END OF KEYWORD 4\n");
         BYTE** file2 = readHashFile(PWD6_FILENAME, NUM_PWD6SHA256);
-        generateSixCharPass(6, file2, NUM_PWD6SHA256);
+        generateSixCharPass(PWD6_GUESS_LENGTH, file2, NUM_PWD6SHA256);
         free(file2);
     }
     return 0;
@@ -132,7 +135,7 @@ void generateFourCharPass(int maxlen, BYTE** file, int numberOfHash){
                     buffer[1] = allchar[j];
                     buffer[2] = allchar[k];
                     buffer[3] = allchar[l];
-                    numOfCorrectGuesses += compareHashes(file, buffer, NUM_PWD4SHA256, MAX_LENGTH);
+                    numOfCorrectGuesses += compareHashes(file, buffer, NUM_PWD4SHA256, PWD4_GUESS_LENGTH);
                     memset(buffer, '\0', bufLen);
                     if(numOfCorrectGuesses == numberOfHash){
                         free(buffer);
@@ -146,12 +149,16 @@ void generateFourCharPass(int maxlen, BYTE** file, int numberOfHash){
     free(buffer);
 }
 
-
 // statistics based on common_password.txt
 // 70 different character
 // 82 % are alphabets
 // 11 % are alphanumeric
 // 5 % are numbers
+// 99% of guesses dont contain special characters
+// 85% of guesses contain either 1 or 0 numbers
+// 99% dont contain any upper case letters
+// Target of guess: 6 character password, with no special character, no uppercase letters
+// and either 0/1 number
 void generateGuess(int numGuessRequired){
     //try dictionary attack using common_password.txt
     //if length 6 just print, else if < 6, combine numbers and punctuation
@@ -193,12 +200,12 @@ int dictionaryAttack(int numGuessRequired){
 
             //ignore words with length > 6 + 1 (take account '\n' character)
             if(wordLen > SMART_GUESS_WORD_LEN + 1){
-                continue;
+                strncpy(buffer, line, SMART_GUESS_WORD_LEN);
+             //copy string without '\n'
+            } else { 
+                strncpy(buffer, line, wordLen - 1);
             }
         
-            //copy string without '\n'
-            strncpy(buffer, line, wordLen - 1);
-
             //clear line and buffer for next word (safety purpose)
             bzero(line, 128);
             
@@ -206,13 +213,14 @@ int dictionaryAttack(int numGuessRequired){
             if(strlen(buffer) == 6){
                 printf("%s\n", buffer);
                 numGuessMade++;
+                generate_similar_words(buffer, numGuessRequired - numGuessMade);
             // string length < 6
             } else {
-                int length_suffix =  SMART_GUESS_WORD_LEN - strlen(buffer);
+                /* int length_suffix =  SMART_GUESS_WORD_LEN - strlen(buffer);
                 char* suffix_buff = malloc(length_suffix + 1);
                 memset(suffix_buff, 0, length_suffix + 1);
                 numGuessMade = bruteImpl(suffix_buff, 0, length_suffix, buffer, numGuessRequired, numGuessMade);
-                free(suffix_buff);
+                free(suffix_buff); */
             }
             //reset buffer for next word
             memset(buffer, '\0', bufferLen);
@@ -229,6 +237,35 @@ int dictionaryAttack(int numGuessRequired){
     }
 }
 
+void generate_similar_words(char* word, int numGuessRemaining){
+    char *buff1, *buff2, *buff3, *buff4, *buff5, *buff6; 
+    buff1 = similar_p;
+    buff2 = similar_a;
+    buff3 = similar_s;
+    buff4 = similar_s;
+    buff5 = similar_w;
+    buff6 = similar_o;
+
+    for(int i = 0; i < strlen(buff1); i++){
+        for(int j = 0; j < strlen(buff2); j++){
+            for(int k = 0; k < strlen(buff3); k++){
+                for(int l = 0; l < strlen(buff4); l++){
+                    for(int m = 0; m < strlen(buff5); m++){
+                        for(int n = 0; n < strlen(buff6); n++){
+                            word[0] = buff1[i];
+                            word[1] = buff2[j];
+                            word[2] = buff3[k];
+                            word[3] = buff4[l];
+                            word[4] = buff5[m];
+                            word[5] = buff6[n];
+                            printf("%s\n", word);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
 
 int bruteImpl(char* suffix, int index, int maxDepth, char* prefix, int numGuessRequired, int numGuessMade){
     //if suffix length = 2 (1 number, 1 symbol)
