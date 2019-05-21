@@ -45,41 +45,106 @@ char symbolsPool[13] = "?|~!@#$%^&*+\0";
 char numberPool[11] =  "0123456789\0";
 
 int main(int argc, char *argv[]){
+    //generate x amount of guesses
     if (argc == 2){
         int numOfGuesses = atoi(argv[1]);
         generateGuess(numOfGuesses);
-    }
-
-    else if (argc == 1){
-        BYTE** file = readHashFile(PWD4_FILENAME, NUM_PWD4SHA256);
-        generateFourCharPass(PWD4_GUESS_LENGTH, file, NUM_PWD4SHA256);
+    
+    //argv[2] = guess file, arg[3] = hashedfile
+    }else if(argc == 3){
+        BYTE** hashed_file;
+        int num_hashes;
+        num_hashes = readHashFile(argv[2], &hashed_file);
+        compareAllGuesses(argv[1],hashed_file, num_hashes);
+        free(hashed_file);
+    
+    //will not be tested (use to generate guesses for pwd4sha256/ pwd6sha256)
+    }else if (argc == 1){
+        BYTE **file, **file2; 
+        int num_pwd4sha, num_pwd6sha;
+        num_pwd4sha = readHashFile(PWD4_FILENAME, &file);
+        generateFourCharPass(PWD4_GUESS_LENGTH, file, num_pwd4sha);
         free(file);
-        printf("END OF KEYWORD 4\n");
-        BYTE** file2 = readHashFile(PWD6_FILENAME, NUM_PWD6SHA256);
-        generateSixCharPass(PWD6_GUESS_LENGTH, file2, NUM_PWD6SHA256);
+        num_pwd6sha = readHashFile(PWD6_FILENAME, &file2);
+        generateSixCharPass(PWD6_GUESS_LENGTH, file2, num_pwd6sha);
         free(file2);
     }
     return 0;
 }
 
-
-BYTE** readHashFile(char* filename, int num_hashes){
+void compareAllGuesses(char* filename, BYTE** hashed_file, int num_hashes){
     FILE *fp;
-    BYTE **buffer = (BYTE **)malloc(num_hashes * sizeof(BYTE *)); 
-    for (int i=0; i < num_hashes; i++){
-         buffer[i] = (BYTE *)malloc(SHA256_BLOCK_SIZE+1);
+    //usage: read from fgets file
+    char line[100001];
+    bzero(line, 100001);
+
+    //usage: convert line to byte (unsigned char) for formula purposes
+    BYTE guess[100001];
+    bzero(guess, 100001);
+
+    fp = fopen(filename, "r");
+    if(fp != NULL){
+        //for own record purposes
+        int numOfCorrectGuesses = 0;
+        while (fgets(line, sizeof(line), fp) != NULL ){
+            //length of guess (without \n character)
+            int wordLen = strlen(line) - 1;
+            memcpy(guess, line, wordLen);
+            numOfCorrectGuesses += compareHashes(hashed_file, guess, num_hashes, wordLen);
+
+            //flush buffer after usage
+            bzero(line, 100001);
+            bzero(guess, 100001);
+        }
+    } else {
+        fprintf(stderr, "File not found");
     }
-    
+    fclose(fp);
+}
+
+int readHashFile(char* filename, BYTE*** buffer){
+    FILE *fp;
+
+    //store a line
+    BYTE line[SHA256_BLOCK_SIZE];
+    bzero(line, SHA256_BLOCK_SIZE);
+
+    //first read to store the total num_hashes
+    fp = fopen(filename, "rb");
+    int num_hashes = 0;
+    if (fp != NULL){
+        int read = 0;
+        while((read = fread(line, SHA256_BLOCK_SIZE, 1, fp)) > 0){
+            num_hashes++;
+        }
+    }
+    fclose(fp);
+
+    //dynamic allocation based on num_hashes
+    *buffer = (BYTE**)malloc(num_hashes * sizeof(BYTE *)); 
+    if (*buffer == NULL){
+        fprintf(stderr, "Cannot allocate memory for hashed_file");
+        exit(1);
+    }
+    for (int i=0; i < num_hashes; i++) {
+        (*buffer)[i] = (BYTE*)malloc(SHA256_BLOCK_SIZE+1);
+        if ((*buffer)[i] == NULL){
+            fprintf(stderr, "Cannot allocate memory for hashed_file");
+            exit(1);
+        }
+    }
+
+    //second read to store hashes in buffer
     fp = fopen(filename, "rb");
     int i = 0;
     if (fp != NULL){
         int read = 0;
-        while((read = fread(buffer[i], SHA256_BLOCK_SIZE, 1, fp)) > 0){
+        while((read = fread((*buffer)[i], SHA256_BLOCK_SIZE, 1, fp)) > 0){
             i++;
         }
     }
     fclose(fp);
-    return buffer;
+    return num_hashes;
 }
 
 
@@ -89,7 +154,8 @@ int compareHashes(BYTE** file, BYTE* guess, int num_hashes, int guess_length){
     for(int i = 0; i < num_hashes; i++){
         test = memcmp(file[i], hashed_guess, SHA256_BLOCK_SIZE);
         if(test == 0){
-            printf("%s %d\n", guess, i+1+10);
+            printf("%s %d\n", guess, i+1);
+            free(hashed_guess);
             return 1;
         }
     }

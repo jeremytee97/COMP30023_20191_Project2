@@ -21,6 +21,8 @@
 /*Function declaration*/
 int compareHashes(BYTE** file, BYTE* guess, int num_hashes, int guess_length);
 
+void compareAllGuesses(char* guess, BYTE** file, int num_hashes);
+
 void generateGuess(int numOfGuesses);
 
 void generate_similar_words(char* word, int numGuessRemaining);
@@ -35,7 +37,7 @@ void generateSixCharPass(int maxlen, BYTE** file, int numberOfHash);
 
 int bruteImpl(char* str, int index, int maxDepth, char* prefix, int numGuessRequired, int numGuessMade);
 
-BYTE** readHashFile(char* filename, int num_hashes);
+int readHashFile(char* filename, BYTE*** buffer);
 
 BYTE* hashGuess(BYTE* guess, int guess_length);
 
