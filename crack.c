@@ -31,21 +31,7 @@ const char similar_character_mapping[MAX_LOWERCASE_ALPHABETS][MAX_SIMILAR_CHARAC
     "A4@", "B?68","C(","D?","E*3","F","G","H","I!|1","J","K","L|1","M","N&^",
     "O0*","P?","Q9","R2","S$52","T7%","U","V","W","X*","Y","Z"}
     ; */
-
-char similar_p[4] = "p\0";
-
-char similar_a[4] = "a4\0";
-
-char similar_s[5] = "52\0";
-
-char similar_w[3] = "w\0";
-
-char similar_o[4] = "0\0";
-
-char symbolsPool[13] = "?|~!@#$%^&*+\0";
-
-char numberPool[11] =  "0123456789\0";
-
+    
 int main(int argc, char *argv[]){
     //generate x amount of guesses
     if (argc == 2){
