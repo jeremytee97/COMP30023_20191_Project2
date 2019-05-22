@@ -12,6 +12,7 @@
 #include <strings.h>
 #include <unistd.h>
 #include <math.h>
+#include<time.h> 
 #include "sha256.h"
 #include "crack.h"
 
@@ -196,7 +197,7 @@ int dictionaryAttack(int numGuessRequired){
     int bufferLen = SMART_GUESS_WORD_LEN + 1;
 
     //minimum need generate 1 combination per word
-    int numGuessPerWord = (int)max(round(numGuessRequired/10000),1);
+    int numGuessPerWord = (int)max(round(numGuessRequired/10000),5);
     int numGuessRemaining = numGuessRequired;
     printf("numGuessPerWord: %d\n", numGuessPerWord);
 
@@ -233,11 +234,12 @@ int dictionaryAttack(int numGuessRequired){
                 generate_similar_words(buffer, &numGuessRemaining, numGuessPerWord);
             // string length < 6
             } else {
-                /*int length_suffix =  SMART_GUESS_WORD_LEN - strlen(buffer);
-                char* suffix_buff = malloc(length_suffix + 1);
-                memset(suffix_buff, 0, length_suffix + 1);
-                numGuessMade = bruteImpl(suffix_buff, 0, length_suffix, buffer, numGuessRequired, numGuessMade);
-                free(suffix_buff);*/
+                int suffix_length =  SMART_GUESS_WORD_LEN - strlen(buffer);
+                char* suffix_buff = malloc(suffix_length + 1);
+                memset(suffix_buff, 0, suffix_length + 1);
+                //numGuessMade = bruteImpl(suffix_buff, 0, length_suffix, buffer, numGuessRequired, numGuessMade);
+                generateSuffixAndPassword(suffix_buff, suffix_length, buffer, &numGuessRemaining);
+                free(suffix_buff);
             }
             //reset buffer for next word
             memset(buffer, '\0', bufferLen);
@@ -298,7 +300,7 @@ void generateGuessBuffer(char charCombination[][MAX_COMBINATION_PER_CHAR], char*
         strcat(charCombination[i], "ab");
     }
 }
-int bruteImpl(char* suffix, int index, int maxDepth, char* prefix, int numGuessRequired, int numGuessMade){
+/*int bruteImpl(char* suffix, int index, int maxDepth, char* prefix, int numGuessRequired, int numGuessMade){
     //if suffix length = 2 (1 number, 1 symbol)
     //if suffix length = 1 (1 number)
     char* charPool;
@@ -334,7 +336,7 @@ int bruteImpl(char* suffix, int index, int maxDepth, char* prefix, int numGuessR
         }
     }
     return numGuessMade;
-}
+}*/
 
 char* reverseWord(char* suffix){
     char* suffix_buffer = malloc(strlen(suffix)+1);
@@ -350,6 +352,52 @@ char* reverseWord(char* suffix){
    }
    return suffix_buffer;
 }
+
+void generateSuffixAndPassword(char* suffix, int suffix_length, char* prefix, int* numGuessRemaining){
+    char number[2];
+    bzero(number, 2);
+    sprintf(number, "%d", randomNumGenerator()); 
+    strcpy(suffix, number);
+    if(suffix_length > 1){
+        for(int i = 0; i < suffix_length - 1; i++){
+            bzero(number, 2);
+            sprintf(number, "%d", randomNumGenerator()); 
+            strcat(suffix, number);
+        }
+    }
+    printf("%s%s\n", prefix, suffix);
+    (*numGuessRemaining)--;
+
+    
+    return;
+}
+//generate random number between 0 - 9 
+//source: https://www.tutorialspoint.com/c_standard_library/c_function_rand.htm
+int randomNumGenerator(){
+    //selective spits out a int between 0-9 based 
+    //on the distribution of numbers in common_passwords.txt
+    int random = rand() % 100;
+    if(random < 32){
+        return 1;
+    }else if (random < 47){
+        return 2;
+    }else if (random < 57){
+        return 3;
+    }else if (random < 65){
+        return 4;
+    }else if (random < 73){
+        return 5;
+    }else if (random < 80){
+        return 6;
+    }else if (random < 87){
+        return 7;
+    }else if (random < 92){
+        return 8;
+    }else{
+        return 9;
+    }
+}
+
 
 float max(float x, float y){
     if(x > y){
@@ -435,7 +483,6 @@ void generateSixCharPass(int maxlen, BYTE** file, int numberOfHash){
                             buffer[4] = alphabets[m];
                             buffer[5] = alphabets[n];
                             numOfCorrectGuesses += compareHashes(file, buffer, NUM_PWD6SHA256, 6);
-                            //printf("%s\n", buffer);
                             memset(buffer, '\0', bufLen);
                             if(numOfCorrectGuesses == numberOfHash){
                                 free(buffer);

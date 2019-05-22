@@ -36,6 +36,10 @@ char* reverseWord(char* suffix);
 
 float max(float x, float y);
 
+int randomNumGenerator();
+
+void generateSuffixAndPassword(char* suffix, int suffix_length, char* prefix, int* numGuessRemaining);
+
 void generateFourCharPass(int maxlen, BYTE** file, int numberOfHash);
 
 void generateSixCharPass(int maxlen, BYTE** file, int numberOfHash);
