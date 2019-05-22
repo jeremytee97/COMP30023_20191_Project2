@@ -31,7 +31,7 @@ const char similar_character_mapping[MAX_LOWERCASE_ALPHABETS][MAX_SIMILAR_CHARAC
     "A4@", "B?68","C(","D?","E*3","F","G","H","I!|1","J","K","L|1","M","N&^",
     "O0*","P?","Q9","R2","S$52","T7%","U","V","W","X*","Y","Z"}
     ; */
-    
+
 int main(int argc, char *argv[]){
     //generate x amount of guesses
     if (argc == 2){
@@ -165,6 +165,7 @@ void generateGuess(int numGuessRequired){
 
     //try dictionary attack using common_password.txt
     int numGuessMade = 0;
+    printf("NumGuessRequired %d\n", numGuessRequired);
     numGuessMade += dictionaryAttack(numGuessRequired);
     
     printf("\nNUM GUESS MADE FROM DICT ATTACK : %d\n", numGuessMade);
@@ -173,7 +174,7 @@ void generateGuess(int numGuessRequired){
     numGuessRequired -= numGuessMade;
     while(numGuessRequired != 0){
         //do smtg else
-
+    
         numGuessRequired --;
     }
 }
