@@ -9,8 +9,9 @@
 #include <ctype.h>
 #include <stdio.h>
 #include <memory.h>
-#include <string.h>
+#include <strings.h>
 #include <unistd.h>
+#include <math.h>
 #include "sha256.h"
 #include "crack.h"
 
@@ -147,7 +148,6 @@ int readHashFile(char* filename, BYTE*** buffer){
     return num_hashes;
 }
 
-
 int compareHashes(BYTE** file, BYTE* guess, int num_hashes, int guess_length){
     int test;
     BYTE* hashed_guess = hashGuess(guess, guess_length);
@@ -173,65 +173,14 @@ BYTE* hashGuess(BYTE* guess, int guess_length){
     return buffer;
 }
 
-/* Brute force generating all possible 4 keyword password */
-void generateFourCharPass(int maxlen, BYTE** file, int numberOfHash){
-    int   len      = maxlen;
-    BYTE *buffer   = malloc((maxlen + 1));
-
-    if (buffer == NULL) {
-        fprintf(stderr, "Cannot allocate memory for buffer");
-        exit(1);
-    }
-
-
-    // This for loop generates all 1 letter patterns, then 2 letters, etc,
-    // up to the given maxlen.
-    // The stride is one larger than len because each line has a '\0'.
-    int stride = len+1;
-    int bufLen = stride;
-
-    // Initialize buffer
-    memset(buffer, '\0', bufLen);
-    int numOfCorrectGuesses = 0;
-    for(int i = 0; i < MAX_KEYWORDS; i++){
-        for(int j = 0; j < MAX_KEYWORDS; j++){
-            for(int k = 0; k < MAX_KEYWORDS; k++){
-                for(int l = 0; l < MAX_KEYWORDS; l++){
-                    buffer[0] = allchar[i];
-                    buffer[1] = allchar[j];
-                    buffer[2] = allchar[k];
-                    buffer[3] = allchar[l];
-                    numOfCorrectGuesses += compareHashes(file, buffer, NUM_PWD4SHA256, PWD4_GUESS_LENGTH);
-                    memset(buffer, '\0', bufLen);
-                    if(numOfCorrectGuesses == numberOfHash){
-                        free(buffer);
-                        return;
-                    }
-                }
-            }
-        }
-    }
-    // Clean up
-    free(buffer);
-}
-
-// statistics based on common_password.txt
-// 70 different character
-// 82 % are alphabets
-// 11 % are alphanumeric
-// 5 % are numbers
-// 99% of guesses dont contain special characters
-// 85% of guesses contain either 1 or 0 numbers
-// 99% dont contain any upper case letters
-// Target of guess: 6 character password, with no special character, no uppercase letters
-// and either 0/1 number
+//statistics of common_password.txt and other students hashes are in readme file
 void generateGuess(int numGuessRequired){
+
     //try dictionary attack using common_password.txt
-    //if length 6 just print, else if < 6, combine numbers and punctuation
     int numGuessMade = 0;
     numGuessMade += dictionaryAttack(numGuessRequired);
     
-    printf("%d\n", numGuessMade);
+    printf("\nNUM GUESS MADE FROM DICT ATTACK : %d\n", numGuessMade);
 
     //update guess required
     numGuessRequired -= numGuessMade;
@@ -246,7 +195,10 @@ int dictionaryAttack(int numGuessRequired){
     //include '\0'
     int bufferLen = SMART_GUESS_WORD_LEN + 1;
 
-    int numGuessMade = 0;
+    //minimum need generate 1 combination per word
+    int numGuessPerWord = (int)max(round(numGuessRequired/10000),1);
+    int numGuessRemaining = numGuessRequired;
+    printf("numGuessPerWord: %d\n", numGuessPerWord);
 
     //read common_password file
     FILE *file = fopen (COMMON_PASS_FILENAME,"r");
@@ -264,10 +216,11 @@ int dictionaryAttack(int numGuessRequired){
         while (fgets(line, sizeof(line), file) != NULL ){
             int wordLen = strlen(line);
 
-            //ignore words with length > 6 + 1 (take account '\n' character)
+            //slice words if length > SMART_GUESS_WORD_LEN
             if(wordLen > SMART_GUESS_WORD_LEN + 1){
                 strncpy(buffer, line, SMART_GUESS_WORD_LEN);
-             //copy string without '\n'
+
+            //if less than or equals to SMART_GUESS_WORD_LEN, copy string without '\n'
             } else { 
                 strncpy(buffer, line, wordLen - 1);
             }
@@ -277,54 +230,60 @@ int dictionaryAttack(int numGuessRequired){
             
             //if it is a 6 character guess, output and move on
             if(strlen(buffer) == 6){
-                printf("%s\n", buffer);
-                numGuessMade++;
-                generate_similar_words(buffer, numGuessRequired - numGuessMade);
+                generate_similar_words(buffer, &numGuessRemaining, numGuessPerWord);
             // string length < 6
             } else {
-                /* int length_suffix =  SMART_GUESS_WORD_LEN - strlen(buffer);
+                /*int length_suffix =  SMART_GUESS_WORD_LEN - strlen(buffer);
                 char* suffix_buff = malloc(length_suffix + 1);
                 memset(suffix_buff, 0, length_suffix + 1);
                 numGuessMade = bruteImpl(suffix_buff, 0, length_suffix, buffer, numGuessRequired, numGuessMade);
-                free(suffix_buff); */
+                free(suffix_buff);*/
             }
             //reset buffer for next word
             memset(buffer, '\0', bufferLen);
-            if (numGuessMade == numGuessRequired){
-                return numGuessMade;
+            if (numGuessRemaining == 0){
+                return numGuessRemaining;
             }
         }
         fclose(file);
         free(buffer);
-        return numGuessMade;
+        return numGuessRemaining;
     } else{
         perror("Common_password.txt not found");
         return 0;
     }
 }
 
-void generate_similar_words(char* word, int numGuessRemaining){
-    char *buff1, *buff2, *buff3, *buff4, *buff5, *buff6; 
-    buff1 = similar_p;
-    buff2 = similar_a;
-    buff3 = similar_s;
-    buff4 = similar_s;
-    buff5 = similar_w;
-    buff6 = similar_o;
+void generate_similar_words(char* word, int* numGuessRemaining, int numGuessPerWord){
+    char charCombination[SMART_GUESS_WORD_LEN][MAX_COMBINATION_PER_CHAR];
+    memset(charCombination, '\0', sizeof(charCombination));
+    generateGuessBuffer(charCombination, word);
 
-    for(int i = 0; i < strlen(buff1); i++){
-        for(int j = 0; j < strlen(buff2); j++){
-            for(int k = 0; k < strlen(buff3); k++){
-                for(int l = 0; l < strlen(buff4); l++){
-                    for(int m = 0; m < strlen(buff5); m++){
-                        for(int n = 0; n < strlen(buff6); n++){
-                            word[0] = buff1[i];
-                            word[1] = buff2[j];
-                            word[2] = buff3[k];
-                            word[3] = buff4[l];
-                            word[4] = buff5[m];
-                            word[5] = buff6[n];
-                            printf("%s\n", word);
+    char guess[SMART_GUESS_WORD_LEN+1];
+    bzero(guess, SMART_GUESS_WORD_LEN+1);
+
+    for(int i = 0; i < strlen(charCombination[0]); i++){
+        for(int j = 0; j < strlen(charCombination[1]); j++){
+            for(int k = 0; k < strlen(charCombination[2]); k++){
+                for(int l = 0; l < strlen(charCombination[3]); l++){
+                    for(int m = 0; m < strlen(charCombination[4]); m++){
+                        for(int n = 0; n < strlen(charCombination[5]); n++){
+                            guess[0] = charCombination[0][i];
+                            guess[1] = charCombination[1][j];
+                            guess[2] = charCombination[2][k];
+                            guess[3] = charCombination[3][l];
+                            guess[4] = charCombination[4][m];
+                            guess[5] = charCombination[5][n];
+                            printf("%s\n", guess);
+                            (*numGuessRemaining) --;
+                            numGuessPerWord --;
+                            if(numGuessPerWord == 0){
+                                return;
+                            }
+                            if((*numGuessRemaining) == 0){
+                                printf("SUCCESS!");
+                                return;
+                            }
                         }
                     }
                 }
@@ -333,6 +292,12 @@ void generate_similar_words(char* word, int numGuessRemaining){
     }
 }
 
+void generateGuessBuffer(char charCombination[][MAX_COMBINATION_PER_CHAR], char* word){
+    for(int i = 0; i < SMART_GUESS_WORD_LEN; i++){
+        charCombination[i][0] = word[i];
+        strcat(charCombination[i], "ab");
+    }
+}
 int bruteImpl(char* suffix, int index, int maxDepth, char* prefix, int numGuessRequired, int numGuessMade){
     //if suffix length = 2 (1 number, 1 symbol)
     //if suffix length = 1 (1 number)
@@ -386,6 +351,54 @@ char* reverseWord(char* suffix){
    return suffix_buffer;
 }
 
+float max(float x, float y){
+    if(x > y){
+        return x;
+    }
+    return y;
+}
+
+/* Brute force generating all possible 4 keyword password */
+void generateFourCharPass(int maxlen, BYTE** file, int numberOfHash){
+    int   len      = maxlen;
+    BYTE *buffer   = malloc((maxlen + 1));
+
+    if (buffer == NULL) {
+        fprintf(stderr, "Cannot allocate memory for buffer");
+        exit(1);
+    }
+
+
+    // This for loop generates all 1 letter patterns, then 2 letters, etc,
+    // up to the given maxlen.
+    // The stride is one larger than len because each line has a '\0'.
+    int stride = len+1;
+    int bufLen = stride;
+
+    // Initialize buffer
+    memset(buffer, '\0', bufLen);
+    int numOfCorrectGuesses = 0;
+    for(int i = 0; i < MAX_KEYWORDS; i++){
+        for(int j = 0; j < MAX_KEYWORDS; j++){
+            for(int k = 0; k < MAX_KEYWORDS; k++){
+                for(int l = 0; l < MAX_KEYWORDS; l++){
+                    buffer[0] = allchar[i];
+                    buffer[1] = allchar[j];
+                    buffer[2] = allchar[k];
+                    buffer[3] = allchar[l];
+                    numOfCorrectGuesses += compareHashes(file, buffer, NUM_PWD4SHA256, PWD4_GUESS_LENGTH);
+                    memset(buffer, '\0', bufLen);
+                    if(numOfCorrectGuesses == numberOfHash){
+                        free(buffer);
+                        return;
+                    }
+                }
+            }
+        }
+    }
+    // Clean up
+    free(buffer);
+}
 
 /* Brute force generating all possible 4 keyword password */
 void generateSixCharPass(int maxlen, BYTE** file, int numberOfHash){

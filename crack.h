@@ -10,6 +10,7 @@
 #define PWD6_GUESS_LENGTH 6
 
 #define SMART_GUESS_WORD_LEN 6
+#define MAX_COMBINATION_PER_CHAR 6
 #define NUM_PWD4SHA256 10
 #define NUM_PWD6SHA256 20
 
@@ -25,11 +26,15 @@ void compareAllGuesses(char* guess, BYTE** file, int num_hashes);
 
 void generateGuess(int numOfGuesses);
 
-void generate_similar_words(char* word, int numGuessRemaining);
+void generate_similar_words(char* word, int* numGuessRemaining, int numGuessPerWord);
+
+void generateGuessBuffer(char charCombination[][MAX_COMBINATION_PER_CHAR], char* word);
 
 int dictionaryAttack(int numGuessRequired);
 
 char* reverseWord(char* suffix);
+
+float max(float x, float y);
 
 void generateFourCharPass(int maxlen, BYTE** file, int numberOfHash);
 
