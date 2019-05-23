@@ -5,6 +5,8 @@
 #define MAX_KEYWORDS 95
 #define MAX_ALPHABETS 52
 #define MAX_LOWERCASE_ALPHABETS 26
+#define UPPERCASE 1
+#define SYMBOL 0
 
 #define PWD4_GUESS_LENGTH 4
 #define PWD6_GUESS_LENGTH 6
@@ -24,11 +26,13 @@ int compareHashes(BYTE** file, BYTE* guess, int num_hashes, int guess_length);
 
 void compareAllGuesses(char* guess, BYTE** file, int num_hashes);
 
-void generateGuess(int numOfGuesses);
+void generate_password(int numOfGuesses);
 
 void generate_similar_words(char* word, int* numGuessRemaining, int numGuessPerWord);
 
-void generateGuessBuffer(char charCombination[][MAX_COMBINATION_PER_CHAR], char* word);
+void generate_pass_buffer(char charCombination[][MAX_COMBINATION_PER_CHAR], char* word, int type);
+
+void generate_pass(char charCombination[][MAX_COMBINATION_PER_CHAR], int numGuessPerWord, int** numGuessRemaining);
 
 int dictionaryAttack(int numGuessRequired);
 
@@ -38,13 +42,11 @@ float max(float x, float y);
 
 int randomNumGenerator();
 
-void generateSuffixAndPassword(char* suffix, int suffix_length, char* prefix, int* numGuessRemaining);
+void generate_suffix_and_password(char* suffix, int suffix_length, char* prefix, int* numGuessRemaining);
 
 void generateFourCharPass(int maxlen, BYTE** file, int numberOfHash);
 
 void generateSixCharPass(int maxlen, BYTE** file, int numberOfHash);
-
-int bruteImpl(char* str, int index, int maxDepth, char* prefix, int numGuessRequired, int numGuessMade);
 
 int readHashFile(char* filename, BYTE*** buffer);
 
