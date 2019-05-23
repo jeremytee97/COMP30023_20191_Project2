@@ -164,14 +164,13 @@ BYTE* hashGuess(BYTE* guess, int guess_length){
 void generateGuess(int numGuessRequired){
 
     //try dictionary attack using common_password.txt
-    int numGuessMade = 0;
+    int numGuessLeftAfterDictAttack;
     printf("NumGuessRequired %d\n", numGuessRequired);
-    numGuessMade += dictionaryAttack(numGuessRequired);
+    numGuessLeftAfterDictAttack = dictionaryAttack(numGuessRequired);
     
-    printf("\nNUM GUESS MADE FROM DICT ATTACK : %d\n", numGuessMade);
+    printf("\nNUM GUESS MADE FROM DICT ATTACK : %d\n", numGuessLeftAfterDictAttack);
 
     //update guess required
-    numGuessRequired -= numGuessMade;
     while(numGuessRequired != 0){
         //do smtg else
     
@@ -184,7 +183,7 @@ int dictionaryAttack(int numGuessRequired){
     int bufferLen = SMART_GUESS_WORD_LEN + 1;
 
     //minimum need generate 1 combination per word
-    int numGuessPerWord = (int)max(round(numGuessRequired/10000),5);
+    int numGuessPerWord = (int)max(round(numGuessRequired/5000),3);
     int numGuessRemaining = numGuessRequired;
     printf("numGuessPerWord: %d\n", numGuessPerWord);
 
@@ -251,18 +250,18 @@ void generate_similar_words(char* word, int* numGuessRemaining, int numGuessPerW
     char guess[SMART_GUESS_WORD_LEN+1];
     bzero(guess, SMART_GUESS_WORD_LEN+1);
 
-    for(int i = 0; i < strlen(charCombination[0]); i++){
-        for(int j = 0; j < strlen(charCombination[1]); j++){
-            for(int k = 0; k < strlen(charCombination[2]); k++){
-                for(int l = 0; l < strlen(charCombination[3]); l++){
-                    for(int m = 0; m < strlen(charCombination[4]); m++){
-                        for(int n = 0; n < strlen(charCombination[5]); n++){
-                            guess[0] = charCombination[0][i];
-                            guess[1] = charCombination[1][j];
-                            guess[2] = charCombination[2][k];
-                            guess[3] = charCombination[3][l];
-                            guess[4] = charCombination[4][m];
-                            guess[5] = charCombination[5][n];
+    for(int i = 0; i < strlen(charCombination[5]); i++){
+        for(int j = 0; j < strlen(charCombination[4]); j++){
+            for(int k = 0; k < strlen(charCombination[3]); k++){
+                for(int l = 0; l < strlen(charCombination[2]); l++){
+                    for(int m = 0; m < strlen(charCombination[1]); m++){
+                        for(int n = 0; n < strlen(charCombination[0]); n++){
+                            guess[0] = charCombination[0][n];
+                            guess[1] = charCombination[1][m];
+                            guess[2] = charCombination[2][l];
+                            guess[3] = charCombination[3][k];
+                            guess[4] = charCombination[4][j];
+                            guess[5] = charCombination[5][i];
                             printf("%s\n", guess);
                             (*numGuessRemaining) --;
                             numGuessPerWord --;
@@ -281,10 +280,28 @@ void generate_similar_words(char* word, int* numGuessRemaining, int numGuessPerW
     }
 }
 
+/* 'A': 11,
+'B': 4,
+'C': 5,
+'D': 4,
+'E': 9,
+'I': 9,
+'L': 6,
+'O': 4,
+'P': 10,
+'R': 7,
+'S': 12,
+'T': 4,
+'U': 4,
+ */
 void generateGuessBuffer(char charCombination[][MAX_COMBINATION_PER_CHAR], char* word){
     for(int i = 0; i < SMART_GUESS_WORD_LEN; i++){
-        charCombination[i][0] = word[i];
-        strcat(charCombination[i], "ab");
+        int nCombinations = 0;
+        charCombination[i][nCombinations] = word[i];
+        nCombinations++;
+        if (isalpha(word[i]) && islower(word[i])){
+            charCombination[i][nCombinations] = toupper(word[i]);
+        }
     }
 }
 /*int bruteImpl(char* suffix, int index, int maxDepth, char* prefix, int numGuessRequired, int numGuessMade){

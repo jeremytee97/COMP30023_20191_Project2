@@ -22,10 +22,11 @@
 * only 2% of words contain consecutive character
 * numbers character probability sorted in descending order - 1,2,0,9,3,4,5,6,7,8
 * 99% of passwords do not contain uppercase
+* In most cases, uppercase are in the first few characters
 
 
 Password will be generated based on:
-6 character, no uppercase, no special characters, either 0 or 1 numbers
+6 character, uppercase on the prefix, no special characters, either 0 or 1 numbers
 
 
 ## To run this program, 
