@@ -25,9 +25,15 @@ const BYTE allchar[MAX_KEYWORDS] = "abcdefghijklmnopqrstuvwxyz"
 const BYTE alphabets[MAX_ALPHABETS] = "abcdefghijklmnopqrstuvwxyz"
                             "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
+char lowercase_alphabets[MAX_LOWERCASE_ALPHABETS] = "abcdefghijklmnopqrstuvwxyz";
+
+char numbers[MAX_NUMBERS] = "0123456789";
+
 int main(int argc, char *argv[]){
     //generate x amount of guesses
     if (argc == 2){
+
+        srand(time(NULL)); 
         int numOfGuesses = atoi(argv[1]);
         generate_password(numOfGuesses);
     
@@ -158,15 +164,15 @@ void generate_password(int numGuessRequired){
 
     //try dictionary attack using common_password.txt
     //if length < 6 append suffix to it
-    int numGuessLeftAfterDictAttack;
-    numGuessLeftAfterDictAttack = dictionaryAttack(numGuessRequired);
+    int numGuessLeftAfterDictAttack = numGuessRequired;
+    //numGuessLeftAfterDictAttack = dictionaryAttack(numGuessRequired);
     
     printf("%d\n", numGuessLeftAfterDictAttack);
+    
     while(numGuessLeftAfterDictAttack != 0){
         //do smtg else
-    
-        numGuessLeftAfterDictAttack --;
-    }
+       generate_similar_words(&numGuessLeftAfterDictAttack);
+    } 
 }
 
 int dictionaryAttack(int numGuessRemaining){
@@ -228,25 +234,135 @@ int dictionaryAttack(int numGuessRemaining){
     }
 }
 
-void generate_similar_words(char* word, int* numGuessRemaining, int numGuessPerWord){
-    //clear buffer
+/*
+'A': 5,'B': 4,'C': 4,'D': 3,'E': 2,'F': 1,'H': 1,'I': 3,'J': 2,'K': 1,'L': 6,'P': 4,'R': 4,'S': 9,'U': 1,'W': 3,
+'a': 460,'b': 794,'c': 782,'d': 502,'e': 225,'f': 370,'g': 402,'h': 409,'i': 139,'j': 301,'k': 229,'l': 372,'m': 664,
+'n': 249,'o': 133,'p': 586,'q': 70,'r': 433,'s': 1062,'t': 500,'u': 54,'v': 141,'w': 306,'x': 36,'y': 76,'z': 89})*/
+void generate_similar_words(int* numGuessRemaining){
+    int nAlpha, nAlphaNum, nNumbers;
+    calculate_distribution(*numGuessRemaining, &nAlpha, &nAlphaNum, &nNumbers);
+
+    //clear buffer for nAlpha
     char charCombination[SMART_GUESS_WORD_LEN][MAX_COMBINATION_PER_CHAR];
     memset(charCombination, '\0', sizeof(charCombination));
+    
+    generate_word(nAlpha, ALPHA_PASS);
+    (*numGuessRemaining) --;
 
-    //include uppercase letters into the pool
-    generate_pass_buffer(charCombination, word, UPPERCASE);
-
-    //print passwords with uppercase
-    generate_pass(charCombination, numGuessPerWord - 1, &numGuessRemaining);
-
-    //clear buffer again
+    //clear buffer for nAlphaNum
     memset(charCombination, '\0', sizeof(charCombination));
+    
+    generate_word(nAlphaNum, ALPHANUMERIC_PASS);
+    (*numGuessRemaining) --;
 
-    //include special symbols into the pool
-    generate_pass_buffer(charCombination, word, SYMBOL);
+/* //include uppercase letters into the pool
+generate_password(charCombination, word, UPPERCASE);
 
-    //print password with symbols (1 only as distribution shows symbols dont appear frequently)
-    generate_pass(charCombination, 1, &numGuessRemaining);
+//print passwords with uppercase
+generate_pass(charCombination, numGuessPerWord - 1, &numGuessRemaining);
+
+//clear buffer again
+memset(charCombination, '\0', sizeof(charCombination));
+
+//include special symbols into the pool
+generate_pass_buffer(charCombination, word, SYMBOL);
+
+//print password with symbols (1 only as distribution shows symbols dont appear frequently)
+generate_pass(charCombination, 1, &numGuessRemaining); */
+}
+
+void calculate_distribution(int numGuessRemaining, int* nAlpha, int* nAlphaNum, int* nNumbers){
+    *nAlpha = round(numGuessRemaining * PERCENTAGE_ALPHABETS_PASSWORD);
+    *nAlphaNum = round(numGuessRemaining * PERCENTAGE_ALPHANUMERIC_PASSWORD);
+    *nNumbers = numGuessRemaining - *nAlpha - *nAlphaNum;
+}
+
+void generate_word(int numGuessRemaining, int type){
+    char guess[SMART_GUESS_WORD_LEN+1];
+    bzero(guess, SMART_GUESS_WORD_LEN+1);
+    int flag = 0;
+    //generate alphabetical password
+    if(type == ALPHA_PASS){
+        for(int i = 0; i < SMART_GUESS_WORD_LEN; i++){
+            //roll twice for each character, first is for which alphabet, second is whether upper or lowercase
+            //percentage of these are based on statistics collected
+            int roll = randomNumGenerator();
+            char character = characterGenerator(roll, i, ALPHA_PASS, flag);
+            guess[i] = character;
+        }
+        //printf("%s\n", guess);
+        numGuessRemaining --;
+        bzero(guess, SMART_GUESS_WORD_LEN+1);
+
+    //generate alphanumeric password
+    } else if(type == ALPHANUMERIC_PASS){
+        for(int i = 0; i < SMART_GUESS_WORD_LEN; i++){
+            //first roll to decide whether is num/alphabet
+            //if alphabet, roll to decide which alphabet, and roll again to decide if its uppercase
+            //if all is alphabet, last one must be num since it is alphanumeric
+            int roll = randomNumGenerator();
+            char character = characterGenerator(roll, i, ALPHANUMERIC_PASS, flag);
+            guess[i] = character;
+            if (isdigit(character) > 0){
+                flag = 1;
+            }
+        }
+        printf("%s\n", guess);
+        numGuessRemaining --;
+        bzero(guess, SMART_GUESS_WORD_LEN+1);
+    }
+}
+
+char characterGenerator(int roll, int index, int type, int flag){
+    char c = '\0';
+
+    //if type is alphabets
+    if(type == ALPHA_PASS){
+        for(int i = 0; i < MAX_LOWERCASE_ALPHABETS; i++){
+            if(roll <= (nAlpha_char_distribution[index][i]*1000)){
+                c = lowercase_alphabets[i];
+                break;
+            }
+        }
+        int isUpper = randomNumGenerator();
+        if(isUpper < (char_upper_distribution[0]*1000)){
+            return c;
+        }
+        return toupper(c);
+    
+    //type is alphanumeric
+    } else if (type == ALPHANUMERIC_PASS) {
+        int roll2 = randomNumGenerator();
+        //if its last character and still no number, make the last character a number
+        if(index == 5 && flag == 0){
+            roll2 = 900;
+        }
+        //roll it is a character
+        if(roll2 < nAlphaNum_char_num_distribution[0]*1000){
+            for(int i = 0; i < MAX_LOWERCASE_ALPHABETS; i++){
+                if(roll <= (nAlphaNum_char_distribution[index][i]*1000)){
+                    c = lowercase_alphabets[i];
+                    break;
+                }
+            }
+            int isUpper = randomNumGenerator();
+            if(isUpper < (char_upper_distribution[0]*1000)){
+                return c;
+            }
+            return toupper(c);
+        
+        //roll it is a number
+        } else {
+            for(int i = 0; i < MAX_NUMBERS; i++){
+                if(roll <= (nAlphaNum_num_distribution[index][i]*1000)){
+                    c = numbers[i];
+                    break;
+                }
+            }
+            return c;
+        }
+    }
+    return toupper(c);
 }
 
 void generate_pass(char charCombination[][MAX_COMBINATION_PER_CHAR], int numGuessPerWord, int** numGuessRemaining){
@@ -281,58 +397,6 @@ void generate_pass(char charCombination[][MAX_COMBINATION_PER_CHAR], int numGues
         }
     }
 }
-void generate_pass_buffer(char charCombination[][MAX_COMBINATION_PER_CHAR], char* word, int type){
-    int flag = 0;
-    for(int i = 0; i < SMART_GUESS_WORD_LEN; i++){
-        int nCombinations = 0;
-        //add uppercase to pool
-        if(type == UPPERCASE){
-            charCombination[i][nCombinations] = word[i];
-            nCombinations++;
-            if (isalpha(word[i]) && islower(word[i])){
-                charCombination[i][nCombinations] = toupper(word[i]);
-            }
-
-        //type == SYMBOL
-        //add symbol to pool
-        } 
-        else {
-            if(flag == 0){
-                if(isalpha(word[i])){
-                    if (word[i] == 'p' || word[i] == 'P' || word[i] == 'd' || word[i] == 'D'){
-                        charCombination[i][nCombinations] = '?';
-                        nCombinations++;
-                        flag = 1;
-                    } else if (word[i] == 'i'){
-                        charCombination[i][nCombinations] = '!';
-                        nCombinations++;
-                        flag = 1;
-                    } else if (word[i] == 'o' || word[i] == 'e'){
-                        charCombination[i][nCombinations] = '*';
-                        nCombinations++;
-                        flag = 1;
-                    } else if (word[i] == 'n'){
-                        printf("ENTERED %c!\n", word[i]);
-                        charCombination[i][nCombinations] = '^';
-                        nCombinations++;
-                        flag = 1;
-                    } else if (word[i] == 'T'|| word[i] == 't' ){
-                        charCombination[i][nCombinations] = '7';
-                        nCombinations++;
-                        flag = 1;
-                    } else if (word[i] == 'R'|| word[i] =='S'|| word[i] == 's'){
-                        charCombination[i][nCombinations] = '2';
-                        nCombinations++;
-                        flag = 1;
-                    }
-                } 
-            } else {
-                charCombination[i][nCombinations] = word[i];
-                nCombinations++;
-            }
-        }
-    }
-}
 
 char* reverseWord(char* suffix){
     char* suffix_buffer = malloc(strlen(suffix)+1);
@@ -352,7 +416,7 @@ char* reverseWord(char* suffix){
 void generate_suffix_and_password(char* suffix, int suffix_length, char* prefix, int* numGuessRemaining){
     char number[2];
     bzero(number, 2);
-    sprintf(number, "%d", randomNumGenerator(*numGuessRemaining)); 
+    sprintf(number, "%d", randomNumGenerator()); 
     strcpy(suffix, number);
     if(suffix_length > 1){
         for(int i = 0; i < suffix_length - 1; i++){
@@ -365,14 +429,14 @@ void generate_suffix_and_password(char* suffix, int suffix_length, char* prefix,
     (*numGuessRemaining)--;
     return;
 }
+
 //generate random number between 0 - 9 
 //source: https://www.tutorialspoint.com/c_standard_library/c_function_rand.htm
-int randomNumGenerator(int seed){
+int randomNumGenerator(){
     //selective spits out a int between 0-9 based 
     //on the distribution of numbers in common_passwords.txt
-    srand(seed);
-    int random = rand() % 100;
-    if(random < 32){
+    int random = rand() % 1000;
+/*     if(random < 32){
         return 1;
     }else if (random < 47){
         return 2;
@@ -390,7 +454,9 @@ int randomNumGenerator(int seed){
         return 8;
     }else{
         return 9;
-    }
+    } */
+
+    return random;
 }
 
 
