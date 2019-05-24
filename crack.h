@@ -23,9 +23,13 @@
 #define ALPHANUMERIC_PASS 1
 #define NUMERIC_PASS 2
 
-//distribution of 88% alphabets, 11% alphanumeric and remaining is numeric passwords
-#define PERCENTAGE_ALPHABETS_PASSWORD 0.88
+//for character generation
+#define NUMERIC_GUESS 900 //cummulative distribution alphabet 90% (0-899), number 10% (900-999)
+
+//distribution of 82% alphabets, 11% alphanumeric and remaining is numeric passwords
+#define PERCENTAGE_ALPHABETS_PASSWORD 0.82
 #define PERCENTAGE_ALPHANUMERIC_PASSWORD 0.11
+
 
 //define max guesses to generate before going with brute force
 #define MAX_ALPHABETS_COMBINATIONS 308915776  //26^6 combinations
@@ -38,11 +42,11 @@
 //compare the words in a given with the hashfile by looping every word and call compareHashes method
 void compareAllGuesses(char* filename, BYTE** file, int num_hashes);
 
-//=========== USES FOR ARG1 ===========
+//=========== USE FOR ARG1 ===========
 //generate x number of password
 void generate_password(int numOfGuesses);
 
-//=========== USES FOR SMART GUESSES ===========
+//=========== USE FOR SMART GUESSES ===========
 
 //smart attack, generate x number of passwords based on statistics of common_password.txt
 void generate_similar_words(int* numGuessRemaining);
@@ -58,13 +62,16 @@ void generate_word(int numGuessRemaining, int type);
 
 int randomNumGenerator();
 
-//=========== USES FOR DICTIONARY ATTACK ===========
+//=========== USE FOR DICTIONARY ATTACK ===========
 
 //perform dictionary attack by using inputs from common_passwords.txt
 int dictionaryAttack(int numGuessRequired);
 
 //generate suffix for a given prefix of length < 6
 void generate_suffix_and_password(char* suffix, int suffix_length, char* prefix, int* numGuessRemaining);
+
+//=========== USE FOR BRUTE FORCE =============
+void bruteForce(int* numGuessRemaining);
 
 //=========== USES SHA256 METHOD ===========
 
