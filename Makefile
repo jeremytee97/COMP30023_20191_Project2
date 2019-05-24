@@ -1,7 +1,7 @@
 CC = gcc
 CFLAGS = -lm -g -std=c99 -O3 -Wall -Wpedantic 
 LIBS = -lm
-DEPS = sha256.h crack.h
+DEPS = stats.h sha256.h crack.h 
 OBJ    = crack.o sha256.o
 EXE    = crack
 

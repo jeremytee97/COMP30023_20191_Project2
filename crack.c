@@ -15,15 +15,12 @@
 #include<time.h> 
 #include "sha256.h"
 #include "crack.h"
+#include "stats.h"
 
 const BYTE allchar[MAX_KEYWORDS] = "abcdefghijklmnopqrstuvwxyz"
                        "0123456789"
                        " ,./;'[]\\-=`<>?:\"{}|~!@#$%^&*()_+"
                        "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-
-
-const BYTE alphabets[MAX_ALPHABETS] = "abcdefghijklmnopqrstuvwxyz"
-                            "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
 char lowercase_alphabets[MAX_LOWERCASE_ALPHABETS] = "abcdefghijklmnopqrstuvwxyz";
 
@@ -33,11 +30,12 @@ int main(int argc, char *argv[]){
     //generate x amount of guesses
     if (argc == 2){
 
+        //set seed for random int generator (0 - 999)
         srand(time(NULL)); 
         int numOfGuesses = atoi(argv[1]);
         generate_password(numOfGuesses);
     
-    //argv[2] = guess file, arg[3] = hashedfile
+    //argv[2] = guess file, argv[3] = hashedfile
     }else if(argc == 3){
         BYTE** hashed_file;
         int num_hashes;
@@ -59,8 +57,10 @@ int main(int argc, char *argv[]){
     return 0;
 }
 
+/* use for argc == 3 
+   compare all guesses from a given file, with the given hashedfile 
+*/
 void compareAllGuesses(char* filename, BYTE** hashed_file, int num_hashes){
-    FILE *fp;
     //usage: read from fgets file
     char line[100001];
     bzero(line, 100001);
@@ -69,13 +69,17 @@ void compareAllGuesses(char* filename, BYTE** hashed_file, int num_hashes){
     BYTE guess[100001];
     bzero(guess, 100001);
 
+    FILE *fp;
     fp = fopen(filename, "r");
     if(fp != NULL){
         //for own record purposes
         int numOfCorrectGuesses = 0;
+
         while (fgets(line, sizeof(line), fp) != NULL ){
             //length of guess (without \n character)
             int wordLen = strlen(line) - 1;
+            
+            //copy from line to guess (convert char to byte)
             memcpy(guess, line, wordLen);
             numOfCorrectGuesses += compareHashes(hashed_file, guess, num_hashes, wordLen);
 
@@ -89,10 +93,12 @@ void compareAllGuesses(char* filename, BYTE** hashed_file, int num_hashes){
     fclose(fp);
 }
 
+/* read hashfile from filename into the buffer for storage
+*/
 int readHashFile(char* filename, BYTE*** buffer){
     FILE *fp;
 
-    //store a line
+    //to store a line
     BYTE line[SHA256_BLOCK_SIZE];
     bzero(line, SHA256_BLOCK_SIZE);
 
@@ -134,6 +140,9 @@ int readHashFile(char* filename, BYTE*** buffer){
     return num_hashes;
 }
 
+/* compare a hashed guess with the hashed file
+   if success, it will print the guess and the coresponding hashed index (start from 1)
+*/
 int compareHashes(BYTE** file, BYTE* guess, int num_hashes, int guess_length){
     int test;
     BYTE* hashed_guess = hashGuess(guess, guess_length);
@@ -149,6 +158,8 @@ int compareHashes(BYTE** file, BYTE* guess, int num_hashes, int guess_length){
     return 0;
 }
 
+/* hash a given guess using the methods from sha256.c provided
+*/
 BYTE* hashGuess(BYTE* guess, int guess_length){
     BYTE* buffer = (BYTE*)malloc(SHA256_BLOCK_SIZE+1);
     SHA256_CTX ctx;
@@ -159,7 +170,11 @@ BYTE* hashGuess(BYTE* guess, int guess_length){
     return buffer;
 }
 
-//statistics of common_password.txt and other students hashes are in readme file
+/* generate smart guess 
+   1. use dictionary attack
+   2. then, use smart guess
+   3. if still not found, brute force it :)
+*/
 void generate_password(int numGuessRequired){
 
     //try dictionary attack using common_password.txt
@@ -175,6 +190,7 @@ void generate_password(int numGuessRequired){
     }
 }
 
+/* try guesses from common_password.txt*/
 int dictionaryAttack(int numGuessRemaining){
     //include '\0'
     int bufferLen = SMART_GUESS_WORD_LEN + 1;
@@ -238,11 +254,10 @@ int dictionaryAttack(int numGuessRemaining){
 void generate_similar_words(int* numGuessRemaining){
     int nAlpha, nAlphaNum, nNumbers;
     (*numGuessRemaining) = calculate_distribution(*numGuessRemaining, &nAlpha, &nAlphaNum, &nNumbers);
-    
+
     //clear buffer for nAlpha
     char charCombination[SMART_GUESS_WORD_LEN][MAX_COMBINATION_PER_CHAR];
     memset(charCombination, '\0', sizeof(charCombination));
-    
     generate_word(nAlpha, ALPHA_PASS);
 
     //clear buffer for nAlphaNum
@@ -402,14 +417,6 @@ int randomNumGenerator(){
     return random;
 }
 
-
-float max(float x, float y){
-    if(x > y){
-        return x;
-    }
-    return y;
-}
-
 /* Brute force generating all possible 4 keyword password */
 void generateFourCharPass(int maxlen, BYTE** file, int numberOfHash){
     int   len      = maxlen;
@@ -474,18 +481,18 @@ void generateSixCharPass(int maxlen, BYTE** file, int numberOfHash){
 
     // Initialize buffer
     memset(buffer, '\0', bufLen);
-    for(int i = 4; i < 52; i++){
-        for(int j = 0; j < 52; j++){
-            for(int k = 0; k < 52; k++){
-                for(int l = 0; l < 52; l++){
-                    for(int m = 0; m < 52; m++){
-                        for(int n = 0; n < 52; n++){
-                            buffer[0] = alphabets[i];
-                            buffer[1] = alphabets[j];
-                            buffer[2] = alphabets[k];
-                            buffer[3] = alphabets[l];
-                            buffer[4] = alphabets[m];
-                            buffer[5] = alphabets[n];
+    for(int i = 4; i < MAX_KEYWORDS; i++){
+        for(int j = 0; j < MAX_KEYWORDS; j++){
+            for(int k = 0; k < MAX_KEYWORDS; k++){
+                for(int l = 0; l < MAX_KEYWORDS; l++){
+                    for(int m = 0; m < MAX_KEYWORDS; m++){
+                        for(int n = 0; n < MAX_KEYWORDS; n++){
+                            buffer[0] = allchar[i];
+                            buffer[1] = allchar[j];
+                            buffer[2] = allchar[k];
+                            buffer[3] = allchar[l];
+                            buffer[4] = allchar[m];
+                            buffer[5] = allchar[n];
                             numOfCorrectGuesses += compareHashes(file, buffer, NUM_PWD6SHA256, 6);
                             memset(buffer, '\0', bufLen);
                             if(numOfCorrectGuesses == numberOfHash){
