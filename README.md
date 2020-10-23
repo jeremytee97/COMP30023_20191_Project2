@@ -1,5 +1,17 @@
 # teej1_comp30023_2019_project-2
 
+### Score and comments
+```Your score is 14.4 out of 15, broken down as follows:
+    3.0 out of 3 for correctly implementing the two-argument form of crack
+    1.9 out of 2 for "good" guesses
+    1.0 out of 1 for code quality
+    0.5 out of 1 for build quality
+    3.0 out of 3 for passing the Diffie-Hellman challenge response
+    5.0 out of 5 for discovering passwords
+    
+Marker comments:
+    Good readability and modularisation, Well commented code, Consistent indentation
+```
 
 ### 1. Statistics for smart guess generation based on common_password.txt and classes hashed passwords:
 
